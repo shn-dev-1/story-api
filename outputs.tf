@@ -15,7 +15,12 @@ output "lambda_function_invoke_arn" {
 
 output "api_gateway_story_url" {
   description = "URL of the /story endpoint"
-  value       = "${data.terraform_remote_state.api_gateway.outputs.api_gateway_url}/story"
+  value       = "https://${data.aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com/prod/story"
+}
+
+output "api_gateway_deployment_id" {
+  description = "ID of the API Gateway deployment"
+  value       = aws_api_gateway_deployment.story_deployment.id
 }
 
 output "lambda_role_arn" {

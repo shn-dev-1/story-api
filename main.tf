@@ -25,16 +25,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Data source to get the existing API Gateway
-data "terraform_remote_state" "api_gateway" {
-  backend = "s3"
-  config = {
-    bucket         = "story-service-terraform-state"
-    key            = "api-gateway/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "story-terraform-lock"
-  }
-}
+
 
 # Create a ZIP file of the Lambda function code
 data "archive_file" "lambda_zip" {
@@ -85,16 +76,27 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Get the root resource ID (this is always available)
+data "aws_api_gateway_rest_api" "api" {
+  name = "story_api"
+}
+
+# Get the root resource
+data "aws_api_gateway_resource" "root" {
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  path        = "/"
+}
+
 # Create the /story resource
 resource "aws_api_gateway_resource" "story" {
-  rest_api_id = data.terraform_remote_state.api_gateway.outputs.api_gateway_id
-  parent_id   = data.terraform_remote_state.api_gateway.outputs.api_gateway_root_resource_id
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  parent_id   = data.aws_api_gateway_resource.root.id
   path_part   = "story"
 }
 
 # Create the POST method
 resource "aws_api_gateway_method" "story_post" {
-  rest_api_id   = data.terraform_remote_state.api_gateway.outputs.api_gateway_id
+  rest_api_id   = data.aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.story.id
   http_method   = "POST"
   authorization = "NONE"
@@ -102,7 +104,7 @@ resource "aws_api_gateway_method" "story_post" {
 
 # Create the Lambda integration
 resource "aws_api_gateway_integration" "story_lambda" {
-  rest_api_id = data.terraform_remote_state.api_gateway.outputs.api_gateway_id
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.story.id
   http_method = aws_api_gateway_method.story_post.http_method
 
@@ -117,12 +119,12 @@ resource "aws_lambda_permission" "api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.story_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${data.terraform_remote_state.api_gateway.outputs.api_gateway_execution_arn}/*/*/*"
+  source_arn    = "${data.aws_api_gateway_rest_api.api.execution_arn}/*/*/*"
 }
 
 # Create OPTIONS method for CORS
 resource "aws_api_gateway_method" "story_options" {
-  rest_api_id   = data.terraform_remote_state.api_gateway.outputs.api_gateway_id
+  rest_api_id   = data.aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.story.id
   http_method   = "OPTIONS"
   authorization = "NONE"
@@ -130,7 +132,7 @@ resource "aws_api_gateway_method" "story_options" {
 
 # Create OPTIONS method integration
 resource "aws_api_gateway_integration" "story_options" {
-  rest_api_id = data.terraform_remote_state.api_gateway.outputs.api_gateway_id
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.story.id
   http_method = aws_api_gateway_method.story_options.http_method
 
@@ -142,7 +144,7 @@ resource "aws_api_gateway_integration" "story_options" {
 
 # Create OPTIONS method response
 resource "aws_api_gateway_method_response" "story_options" {
-  rest_api_id = data.terraform_remote_state.api_gateway.outputs.api_gateway_id
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.story.id
   http_method = aws_api_gateway_method.story_options.http_method
   status_code = "200"
@@ -156,7 +158,7 @@ resource "aws_api_gateway_method_response" "story_options" {
 
 # Create OPTIONS integration response
 resource "aws_api_gateway_integration_response" "story_options" {
-  rest_api_id = data.terraform_remote_state.api_gateway.outputs.api_gateway_id
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.story.id
   http_method = aws_api_gateway_method.story_options.http_method
   status_code = aws_api_gateway_method_response.story_options.status_code
@@ -165,5 +167,20 @@ resource "aws_api_gateway_integration_response" "story_options" {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
+# Deploy the API Gateway to make changes live
+resource "aws_api_gateway_deployment" "story_deployment" {
+  depends_on = [
+    aws_api_gateway_integration.story_lambda,
+    aws_api_gateway_integration_response.story_options
+  ]
+
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  stage_name  = "prod"
+
+  lifecycle {
+    create_before_destroy = true
   }
 } 
