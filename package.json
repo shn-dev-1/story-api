@@ -1,0 +1,22 @@
+{
+  "name": "story-service-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function for story service",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "cd src && zip -r ../lambda_function.zip .",
+    "clean": "rm -f lambda_function.zip"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "api-gateway",
+    "story-service"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 
