@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -11,7 +11,7 @@ terraform {
       version = "~> 2.0"
     }
   }
-  
+
   backend "s3" {
     bucket         = "story-service-terraform-state"
     key            = "story-service/terraform.tfstate"
@@ -47,12 +47,12 @@ data "archive_file" "lambda_zip" {
 resource "aws_lambda_function" "story_lambda" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = "story-service-lambda"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "index.handler"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "index.handler"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  runtime         = "nodejs18.x"
-  timeout         = 30
-  memory_size     = 128
+  runtime          = "nodejs18.x"
+  timeout          = 30
+  memory_size      = 128
 
   environment {
     variables = {
@@ -107,8 +107,8 @@ resource "aws_api_gateway_integration" "story_lambda" {
   http_method = aws_api_gateway_method.story_post.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = aws_lambda_function.story_lambda.invoke_arn
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.story_lambda.invoke_arn
 }
 
 # Create the Lambda permission to allow API Gateway to invoke it
@@ -134,10 +134,10 @@ resource "aws_api_gateway_integration" "story_options" {
   resource_id = aws_api_gateway_resource.story.id
   http_method = aws_api_gateway_method.story_options.http_method
 
-  type                    = "MOCK"
-  request_templates       = { "application/json" = "{\"statusCode\": 200}" }
-  passthrough_behavior    = "WHEN_NO_MATCH"
-  content_handling        = "CONVERT_TO_TEXT"
+  type                 = "MOCK"
+  request_templates    = { "application/json" = "{\"statusCode\": 200}" }
+  passthrough_behavior = "WHEN_NO_MATCH"
+  content_handling     = "CONVERT_TO_TEXT"
 }
 
 # Create OPTIONS method response
