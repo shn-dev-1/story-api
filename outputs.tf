@@ -18,10 +18,7 @@ output "api_gateway_story_url" {
   value       = "https://${data.aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com/prod/story"
 }
 
-output "api_gateway_deployment_id" {
-  description = "ID of the API Gateway deployment"
-  value       = aws_api_gateway_deployment.story_deployment.id
-}
+
 
 output "lambda_role_arn" {
   description = "ARN of the Lambda execution role"

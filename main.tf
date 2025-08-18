@@ -182,11 +182,4 @@ resource "aws_api_gateway_deployment" "story_deployment" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-# Create/update the stage to deploy the API
-resource "aws_api_gateway_stage" "story_stage" {
-  deployment_id = aws_api_gateway_deployment.story_deployment.id
-  rest_api_id   = data.aws_api_gateway_rest_api.api.id
-  stage_name    = "prod"
 } 
