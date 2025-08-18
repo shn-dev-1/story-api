@@ -78,7 +78,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 
 # Get the root resource ID (this is always available)
 data "aws_api_gateway_rest_api" "api" {
-  name = "story_api"
+  name = "story-api"
 }
 
 # Get the root resource
@@ -178,9 +178,15 @@ resource "aws_api_gateway_deployment" "story_deployment" {
   ]
 
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  stage_name  = "prod"
 
   lifecycle {
     create_before_destroy = true
   }
+}
+
+# Create/update the stage to deploy the API
+resource "aws_api_gateway_stage" "story_stage" {
+  deployment_id = aws_api_gateway_deployment.story_deployment.id
+  rest_api_id   = data.aws_api_gateway_rest_api.api.id
+  stage_name    = "prod"
 } 
