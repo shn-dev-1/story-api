@@ -1,20 +1,21 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
-const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, PutCommandInput } from "@aws-sdk/lib-dynamodb";
+import { SQSClient, SendMessageCommand, SendMessageCommandInput } from "@aws-sdk/client-sqs";
 
 // Initialize AWS SDK clients
 const dynamoClient = new DynamoDBClient({});
 const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
 const sqs = new SQSClient({});
 
-exports.handler = async (event) => {
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         // Parse the incoming request
-        const body = JSON.parse(event.body || '{}');
-        const payload = body.payload || '';
+        const body: StoryRequest = JSON.parse(event.body || '{}');
+        const payload: string = body.payload || '';
         
         // Send message to SQS queue
-        const sqsParams = {
+        const sqsParams: SendMessageCommandInput = {
             MessageBody: JSON.stringify({
                 storyPayload: payload,
                 timestamp: new Date().toISOString(),
@@ -31,7 +32,7 @@ exports.handler = async (event) => {
         }
         
         // Store data in DynamoDB
-        const dynamoParams = {
+        const dynamoParams: PutCommandInput = {
             TableName: process.env.DYNAMODB_TABLE || 'story-metadata',
             Item: {
                 id: `story-${Date.now()}`,
@@ -48,6 +49,12 @@ exports.handler = async (event) => {
             console.error('Error storing data in DynamoDB:', dynamoError);
         }
         
+        const response: StoryResponse = {
+            message: 'Success',
+            receivedPayload: payload,
+            note: 'SQS and DynamoDB operations completed successfully.'
+        };
+        
         return {
             statusCode: 200,
             headers: {
@@ -56,11 +63,7 @@ exports.handler = async (event) => {
                 'Access-Control-Allow-Headers': 'Content-Type',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS'
             },
-            body: JSON.stringify({
-                message: 'Success',
-                receivedPayload: payload,
-                note: 'SQS and DynamoDB permissions are configured. Uncomment example code to use them.'
-            })
+            body: JSON.stringify(response)
         };
     } catch (error) {
         console.error('Error:', error);
@@ -72,7 +75,7 @@ exports.handler = async (event) => {
             },
             body: JSON.stringify({
                 message: 'Internal server error',
-                error: error.message
+                error: error instanceof Error ? error.message : 'Unknown error'
             })
         };
     }

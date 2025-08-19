@@ -5,6 +5,10 @@
 .terraform.lock.hcl
 lambda_function.zip
 
+# Build artifacts
+dist/
+build/
+
 # Node.js
 node_modules/
 npm-debug.log*

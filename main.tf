@@ -30,7 +30,7 @@ provider "aws" {
 # Create a ZIP file of the Lambda function code
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
+  source_dir  = "${path.module}/dist"
   output_path = "${path.module}/lambda_function.zip"
 }
 
