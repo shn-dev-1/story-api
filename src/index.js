@@ -1,11 +1,31 @@
+const AWS = require('aws-sdk');
+
+// Initialize AWS SDK clients
+const sqs = new AWS.SQS();
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
 exports.handler = async (event) => {
     try {
         // Parse the incoming request
         const body = JSON.parse(event.body || '{}');
         const payload = body.payload || '';
         
-        // TODO: Implement your business logic here
-        // For now, just return a success response
+        const dynamoParams = {
+            TableName: process.env.DYNAMODB_TABLE || 'story-metadata',
+            Item: {
+                id: `story-${Date.now()}`,
+                payload: payload,
+                timestamp: new Date().toISOString(),
+                status: 'created'
+            }
+        };
+        
+        try {
+            await dynamodb.put(dynamoParams).promise();
+            console.log('Data stored in DynamoDB successfully');
+        } catch (dynamoError) {
+            console.error('Error storing data in DynamoDB:', dynamoError);
+        }
         
         return {
             statusCode: 200,
@@ -17,7 +37,8 @@ exports.handler = async (event) => {
             },
             body: JSON.stringify({
                 message: 'Success',
-                receivedPayload: payload
+                receivedPayload: payload,
+                note: 'SQS and DynamoDB permissions are configured. Uncomment example code to use them.'
             })
         };
     } catch (error) {

@@ -48,6 +48,8 @@ resource "aws_lambda_function" "story_lambda" {
   environment {
     variables = {
       NODE_ENV = "production"
+      SQS_QUEUE_URL = data.aws_sqs_queue.sqs_queue.url
+      DYNAMODB_TABLE = data.aws_dynamodb_table.story_metadata.name
     }
   }
 }
@@ -76,9 +78,57 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Create custom policy for SQS and DynamoDB access
+resource "aws_iam_role_policy" "lambda_sqs_dynamodb" {
+  name = "lambda-sqs-dynamodb-policy"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:SendMessageBatch",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ]
+        Resource = data.aws_sqs_queue.sqs_queue.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:BatchGetItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:DescribeTable"
+        ]
+        Resource = [
+          data.aws_dynamodb_table.story_metadata.arn,
+          "${data.aws_dynamodb_table.story_metadata.arn}/index/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Get the root resource ID (this is always available)
 data "aws_api_gateway_rest_api" "api" {
   name = "story-api"
+}
+
+data "aws_sqs_queue" "sqs_queue" {
+  name = "story-sqs-queue"
+}
+
+data "aws_dynamodb_table" "story_metadata" {
+  name = "story-metadata"
 }
 
 # Get the root resource
