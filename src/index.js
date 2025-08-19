@@ -1,9 +1,11 @@
-// AWS SDK is available by default in Lambda runtime
-const AWS = require('aws-sdk');
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
 
 // Initialize AWS SDK clients
-const sqs = new AWS.SQS();
-const dynamodb = new AWS.DynamoDB.DocumentClient();
+const dynamoClient = new DynamoDBClient({});
+const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
+const sqs = new SQSClient({});
 
 exports.handler = async (event) => {
     try {
@@ -11,6 +13,24 @@ exports.handler = async (event) => {
         const body = JSON.parse(event.body || '{}');
         const payload = body.payload || '';
         
+        // Send message to SQS queue
+        const sqsParams = {
+            MessageBody: JSON.stringify({
+                storyPayload: payload,
+                timestamp: new Date().toISOString(),
+                source: 'story-service-lambda'
+            }),
+            QueueUrl: process.env.SQS_QUEUE_URL || 'https://sqs.us-east-1.amazonaws.com/910670998600/story-sqs-queue'
+        };
+        
+        try {
+            await sqs.send(new SendMessageCommand(sqsParams));
+            console.log('Message sent to SQS successfully');
+        } catch (sqsError) {
+            console.error('Error sending message to SQS:', sqsError);
+        }
+        
+        // Store data in DynamoDB
         const dynamoParams = {
             TableName: process.env.DYNAMODB_TABLE || 'story-metadata',
             Item: {
@@ -22,7 +42,7 @@ exports.handler = async (event) => {
         };
         
         try {
-            await dynamodb.put(dynamoParams).promise();
+            await dynamodb.send(new PutCommand(dynamoParams));
             console.log('Data stored in DynamoDB successfully');
         } catch (dynamoError) {
             console.error('Error storing data in DynamoDB:', dynamoError);
