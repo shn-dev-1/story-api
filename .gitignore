@@ -5,6 +5,9 @@
 .terraform.lock.hcl
 lambda_function.zip
 
+# Lambda packaging
+dist/node_modules/
+
 # Build artifacts
 dist/
 build/
