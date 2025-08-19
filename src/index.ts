@@ -20,13 +20,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         // Parse the incoming request
         const body: StoryRequest = JSON.parse(event.body || '{}');
         const payload: string = body.payload || '';
-        const prompt: string = body.openaiPrompt || '';
+        const openaiPrompt: string = body.openaiPrompt || '';
         const model: string = body.model || 'gpt-4o'; // Default to GPT-4o (closest to GPT-5)
         
         let openaiResponse: string | undefined;
         
         // Call OpenAI if a prompt is provided and API key is available
-        if (prompt && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '') {
+        if (openaiPrompt && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '') {
             try {
                 const completion = await openai.chat.completions.create({
                     model: model,
@@ -37,7 +37,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                         },
                         {
                             role: "user",
-                            content: prompt
+                            content: openaiPrompt
                         }
                     ],
                     max_tokens: 1000,
@@ -56,7 +56,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         const sqsParams: SendMessageCommandInput = {
             MessageBody: JSON.stringify({
                 storyPayload: payload,
-                openaiPrompt: prompt,
+                openaiPrompt: openaiPrompt,
                 openaiResponse: openaiResponse,
                 timestamp: new Date().toISOString(),
                 source: 'story-service-lambda'
@@ -71,14 +71,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             console.error('Error sending message to SQS:', sqsError);
         }
         
-
+        
         // Store data in DynamoDB
         const dynamoParams: PutCommandInput = {
             TableName: process.env.DYNAMODB_TABLE,
             Item: {
                 id: `story-${Date.now()}`,
                 payload: payload,
-                openaiPrompt: prompt,
+                openaiPrompt: openaiPrompt,
                 openaiResponse: openaiResponse,
                 model: model,
                 timestamp: new Date().toISOString(),

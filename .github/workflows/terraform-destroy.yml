@@ -56,6 +56,23 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
         
+    - name: Set OpenAI API Key
+      run: |
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+        
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Build TypeScript
+      run: npm run build
+      
+    - name: Package Lambda Function
+      run: |
+        echo "Packaging Lambda function with dependencies for destroy plan..."
+        npm run package:lambda
+        echo "Lambda function packaged successfully"
+        ls -la lambda_function.zip
+        
     - name: Terraform Init
       run: terraform init
       
