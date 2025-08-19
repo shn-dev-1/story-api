@@ -47,8 +47,8 @@ resource "aws_lambda_function" "story_lambda" {
 
   environment {
     variables = {
-      NODE_ENV = "production"
-      SQS_QUEUE_URL = data.aws_sqs_queue.sqs_queue.url
+      NODE_ENV       = "production"
+      SQS_QUEUE_URL  = data.aws_sqs_queue.sqs_queue.url
       DYNAMODB_TABLE = data.aws_dynamodb_table.story_metadata.name
     }
   }
