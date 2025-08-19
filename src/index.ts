@@ -25,8 +25,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         
         let openaiResponse: string | undefined;
         
-        // Call OpenAI if a prompt is provided
-        if (openaiPrompt && process.env.OPENAI_API_KEY) {
+        // Call OpenAI if a prompt is provided and API key is available
+        if (openaiPrompt && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '') {
             try {
                 const completion = await openai.chat.completions.create({
                     model: model,
