@@ -35,7 +35,8 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
-    "package": "npm run build && cd dist && zip -r ../lambda_function.zip ."
+    "package": "npm run build && npm run package:lambda",
+    "package:lambda": "cd dist && cp -r ../node_modules . && zip -r ../lambda_function.zip . && rm -rf node_modules"
   }
 
 } 

@@ -57,10 +57,10 @@ jobs:
       
     - name: Package Lambda Function
       run: |
-        echo "Packaging Lambda function source code..."
-        cd dist && zip -r ../lambda_function.zip .
+        echo "Packaging Lambda function with dependencies..."
+        npm run package:lambda
         echo "Lambda function packaged successfully"
-        ls -la ../lambda_function.zip
+        ls -la lambda_function.zip
         
     - name: Terraform Init
       run: terraform init
