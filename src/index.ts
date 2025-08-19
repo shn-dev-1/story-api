@@ -71,6 +71,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             console.error('Error sending message to SQS:', sqsError);
         }
         
+        
         // Store data in DynamoDB
         const dynamoParams: PutCommandInput = {
             TableName: process.env.DYNAMODB_TABLE,
