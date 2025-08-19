@@ -14,10 +14,18 @@ This repository contains a Node.js Lambda function that handles POST requests to
 - AWS CLI configured with appropriate permissions
 - Terraform >= 1.0
 - Node.js >= 18.0.0
+- OpenAI API key (for AI integration)
 - Access to the remote Terraform state:
   - S3 Bucket: `story-service-terraform-state`
   - DynamoDB Table: `story-terraform-lock`
   - AWS Region: `us-east-1`
+
+## Required GitHub Secrets
+
+Make sure you have these secrets configured in your repository:
+- `AWS_ACCESS_KEY_ID`: AWS access key for infrastructure deployment
+- `AWS_SECRET_ACCESS_KEY`: AWS secret key for infrastructure deployment  
+- `OPENAI_API_KEY`: OpenAI API key for GPT-5 integration (automatically passed to Lambda)
 
 ## Setup
 
@@ -60,7 +68,27 @@ https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/<stage>/story
 
 ```json
 {
-  "payload": "your string payload here"
+  "payload": "your string payload here",
+  "openaiPrompt": "Optional: Your prompt for GPT-5",
+  "model": "Optional: OpenAI model (defaults to gpt-4o)"
+}
+```
+
+#### Examples
+
+**Basic request (no AI):**
+```json
+{
+  "payload": "Hello world"
+}
+```
+
+**With OpenAI integration:**
+```json
+{
+  "payload": "Story about a robot",
+  "openaiPrompt": "Write a short story about a robot learning to paint",
+  "model": "gpt-4o"
 }
 ```
 
@@ -70,7 +98,9 @@ https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/<stage>/story
 ```json
 {
   "message": "Success",
-  "receivedPayload": "your string payload here"
+  "receivedPayload": "your string payload here",
+  "openaiResponse": "AI-generated response (if prompt provided)",
+  "note": "Operation summary"
 }
 ```
 
@@ -82,15 +112,31 @@ https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/<stage>/story
 }
 ```
 
+## Environment Variables
+
+The Lambda function uses these environment variables:
+- `NODE_ENV`: Environment (production)
+- `SQS_QUEUE_URL`: SQS queue URL for message processing
+- `DYNAMODB_TABLE`: DynamoDB table name for data storage
+- `OPENAI_API_KEY`: OpenAI API key for GPT-5 integration
+
 ## Development
 
 ### Local Testing
 
 You can test the Lambda function locally by creating a test event:
 
+**Basic test:**
 ```json
 {
   "body": "{\"payload\": \"test string\"}"
+}
+```
+
+**With OpenAI integration:**
+```json
+{
+  "body": "{\"payload\": \"test string\", \"openaiPrompt\": \"Write a haiku about coding\", \"model\": \"gpt-4o\"}"
 }
 ```
 
