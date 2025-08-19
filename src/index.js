@@ -1,3 +1,4 @@
+// AWS SDK is available by default in Lambda runtime
 const AWS = require('aws-sdk');
 
 // Initialize AWS SDK clients
