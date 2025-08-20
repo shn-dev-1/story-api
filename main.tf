@@ -27,20 +27,20 @@ provider "aws" {
 
 
 
-# Create a ZIP file of the Lambda function code
-data "archive_file" "lambda_zip" {
+# Create a ZIP file of the story_post Lambda function code
+data "archive_file" "story_post_lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/dist"
-  output_path = "${path.module}/lambda_function.zip"
+  source_dir  = "${path.module}/story-post/dist"
+  output_path = "${path.module}/story_post_lambda_function.zip"
 }
 
-# Create the Lambda function
-resource "aws_lambda_function" "story_lambda" {
-  filename         = data.archive_file.lambda_zip.output_path
-  function_name    = "story-service-lambda"
-  role             = aws_iam_role.lambda_role.arn
+# Create the story_post Lambda function
+resource "aws_lambda_function" "story_post_lambda" {
+  filename         = data.archive_file.story_post_lambda_zip.output_path
+  function_name    = "story-post-lambda"
+  role             = aws_iam_role.story_post_lambda_role.arn
   handler          = "index.handler"
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  source_code_hash = data.archive_file.story_post_lambda_zip.output_base64sha256
   runtime          = "nodejs18.x"
   timeout          = 30
   memory_size      = 128
@@ -55,9 +55,9 @@ resource "aws_lambda_function" "story_lambda" {
   }
 }
 
-# IAM role for the Lambda function
-resource "aws_iam_role" "lambda_role" {
-  name = "story-service-lambda-role"
+# IAM role for the story_post Lambda function
+resource "aws_iam_role" "story_post_lambda_role" {
+  name = "story-post-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -74,15 +74,15 @@ resource "aws_iam_role" "lambda_role" {
 }
 
 # Attach basic Lambda execution policy
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_role.name
+resource "aws_iam_role_policy_attachment" "story_post_lambda_basic" {
+  role       = aws_iam_role.story_post_lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 # Create custom policy for SQS and DynamoDB access
-resource "aws_iam_role_policy" "lambda_sqs_dynamodb" {
-  name = "lambda-sqs-dynamodb-policy"
-  role = aws_iam_role.lambda_role.id
+resource "aws_iam_role_policy" "story_post_lambda_sqs_dynamodb" {
+  name = "story-post-lambda-sqs-dynamodb-policy"
+  role = aws_iam_role.story_post_lambda_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -138,54 +138,54 @@ data "aws_api_gateway_resource" "root" {
   path        = "/"
 }
 
-# Create the /story resource
-resource "aws_api_gateway_resource" "story" {
+# Create the /story resource for story_post endpoint
+resource "aws_api_gateway_resource" "story_post" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
   parent_id   = data.aws_api_gateway_resource.root.id
   path_part   = "story"
 }
 
-# Create the POST method
-resource "aws_api_gateway_method" "story_post" {
+# Create the POST method for story_post endpoint
+resource "aws_api_gateway_method" "story_post_method" {
   rest_api_id   = data.aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.story.id
+  resource_id   = aws_api_gateway_resource.story_post.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
-# Create the Lambda integration
-resource "aws_api_gateway_integration" "story_lambda" {
+# Create the Lambda integration for story_post endpoint
+resource "aws_api_gateway_integration" "story_post_lambda" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story.id
-  http_method = aws_api_gateway_method.story_post.http_method
+  resource_id = aws_api_gateway_resource.story_post.id
+  http_method = aws_api_gateway_method.story_post_method.http_method
 
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.story_lambda.invoke_arn
+  uri                     = aws_lambda_function.story_post_lambda.invoke_arn
 }
 
-# Create the Lambda permission to allow API Gateway to invoke it
-resource "aws_lambda_permission" "api_gateway" {
+# Create the Lambda permission to allow API Gateway to invoke story_post Lambda
+resource "aws_lambda_permission" "story_post_api_gateway" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.story_lambda.function_name
+  function_name = aws_lambda_function.story_post_lambda.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${data.aws_api_gateway_rest_api.api.execution_arn}/*/*/*"
 }
 
-# Create OPTIONS method for CORS
-resource "aws_api_gateway_method" "story_options" {
+# Create OPTIONS method for CORS on story_post endpoint
+resource "aws_api_gateway_method" "story_post_options" {
   rest_api_id   = data.aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.story.id
+  resource_id   = aws_api_gateway_resource.story_post.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
 
-# Create OPTIONS method integration
-resource "aws_api_gateway_integration" "story_options" {
+# Create OPTIONS method integration for story_post endpoint
+resource "aws_api_gateway_integration" "story_post_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story.id
-  http_method = aws_api_gateway_method.story_options.http_method
+  resource_id = aws_api_gateway_resource.story_post.id
+  http_method = aws_api_gateway_method.story_post_options.http_method
 
   type                 = "MOCK"
   request_templates    = { "application/json" = "{\"statusCode\": 200}" }
@@ -193,11 +193,11 @@ resource "aws_api_gateway_integration" "story_options" {
   content_handling     = "CONVERT_TO_TEXT"
 }
 
-# Create OPTIONS method response
-resource "aws_api_gateway_method_response" "story_options" {
+# Create OPTIONS method response for story_post endpoint
+resource "aws_api_gateway_method_response" "story_post_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story.id
-  http_method = aws_api_gateway_method.story_options.http_method
+  resource_id = aws_api_gateway_resource.story_post.id
+  http_method = aws_api_gateway_method.story_post_options.http_method
   status_code = "200"
 
   response_parameters = {
@@ -207,12 +207,12 @@ resource "aws_api_gateway_method_response" "story_options" {
   }
 }
 
-# Create OPTIONS integration response
-resource "aws_api_gateway_integration_response" "story_options" {
+# Create OPTIONS integration response for story_post endpoint
+resource "aws_api_gateway_integration_response" "story_post_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story.id
-  http_method = aws_api_gateway_method.story_options.http_method
-  status_code = aws_api_gateway_method_response.story_options.status_code
+  resource_id = aws_api_gateway_resource.story_post.id
+  http_method = aws_api_gateway_method.story_post_options.http_method
+  status_code = aws_api_gateway_method_response.story_post_options.status_code
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
@@ -221,11 +221,11 @@ resource "aws_api_gateway_integration_response" "story_options" {
   }
 }
 
-# Deploy the API Gateway to make changes live
-resource "aws_api_gateway_deployment" "story_deployment" {
+# Deploy the API Gateway to make story_post endpoint changes live
+resource "aws_api_gateway_deployment" "story_post_deployment" {
   depends_on = [
-    aws_api_gateway_integration.story_lambda,
-    aws_api_gateway_integration_response.story_options
+    aws_api_gateway_integration.story_post_lambda,
+    aws_api_gateway_integration_response.story_post_options
   ]
 
   rest_api_id = data.aws_api_gateway_rest_api.api.id

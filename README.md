@@ -20,6 +20,24 @@ This repository contains a Node.js Lambda function that handles POST requests to
   - DynamoDB Table: `story-terraform-lock`
   - AWS Region: `us-east-1`
 
+## Repository Structure
+
+```
+story-service/
+├── .github/workflows/          # GitHub Actions CI/CD workflows
+├── story-post/                 # Story POST Lambda function
+│   ├── src/                    # TypeScript source code
+│   ├── dist/                   # Compiled JavaScript (generated)
+│   ├── package.json            # Lambda function dependencies
+│   ├── tsconfig.json           # TypeScript configuration
+│   └── README.md               # Lambda function documentation
+├── main.tf                     # Terraform infrastructure configuration (story_post specific)
+├── variables.tf                # Terraform input variables
+├── outputs.tf                  # Terraform outputs (story_post specific)
+├── package.json                # Root repository configuration
+└── README.md                   # This file
+```
+
 ## Required GitHub Secrets
 
 Make sure you have these secrets configured in your repository:
@@ -35,9 +53,13 @@ Make sure you have these secrets configured in your repository:
    cd story-service
    ```
 
-2. **Install dependencies** (if any):
+2. **Install dependencies**:
    ```bash
+   # Install root dependencies
    npm install
+   
+   # Install Lambda function dependencies
+   cd story-post && npm install && cd ..
    ```
 
 3. **Initialize Terraform**:

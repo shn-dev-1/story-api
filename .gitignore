@@ -3,12 +3,14 @@
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
-lambda_function.zip
+story_post_lambda_function.zip
 
 # Lambda packaging
 dist/node_modules/
 
 # Build artifacts
+story-post/dist/
+story-post/build/
 dist/
 build/
 
