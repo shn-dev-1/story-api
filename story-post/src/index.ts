@@ -39,10 +39,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             TableName: process.env.DYNAMODB_TABLE,
             Item: {
                 id,
-                createdBy: 'hard-coded', //TODO: Get from event requestContext
+                created_by: 'hard-coded', //TODO: Get from event requestContext
                 prompt: prompt,
-                dateCreated,
-                dateUpdated: dateCreated,
+                date_created: dateCreated,
+                date_updated: dateCreated,
                 status: StoryMetaDataStatus.PENDING
             }
         };
@@ -58,7 +58,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         const snsParams: PublishCommandInput = {
             Message: JSON.stringify({
                 id,
-                storyPrompt: prompt,
+                story_prompt: prompt,
                 timestamp: dateCreated,
                 source: 'story-service-lambda'
             }),

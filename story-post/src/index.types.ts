@@ -21,8 +21,8 @@ export interface StoryMetaDataDDBItem {
     id: string;
     created_by: string;
     status: StoryMetaDataStatus;
-    dateCreated: string;
-    dateUpdated: string;
+    date_created: string;
+    date_updated: string;
     media_ids: string[];
 }
 
