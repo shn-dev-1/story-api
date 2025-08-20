@@ -34,10 +34,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
         // Store data in DynamoDB
         const dateCreated = new Date().toISOString();
+        const id = randomBytes(8).toString('hex');
         const dynamoParams: PutCommandInput = {
             TableName: process.env.DYNAMODB_TABLE,
             Item: {
-                id: randomBytes(8).toString('hex'),
+                id,
                 createdBy: 'hard-coded', //TODO: Get from event requestContext
                 prompt: prompt,
                 dateCreated,
@@ -56,6 +57,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         // Publish message to SNS topic
         const snsParams: PublishCommandInput = {
             Message: JSON.stringify({
+                id,
                 storyPrompt: prompt,
                 timestamp: dateCreated,
                 source: 'story-service-lambda'
