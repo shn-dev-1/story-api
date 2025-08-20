@@ -55,9 +55,8 @@ resource "aws_lambda_function" "story_post_lambda" {
   environment {
     variables = {
       NODE_ENV       = "production"
-      SQS_QUEUE_URL  = data.aws_sqs_queue.sqs_queue.url
+      SNS_TOPIC_ARN  = data.terraform_remote_state.sns.outputs.sns_topic_arn
       DYNAMODB_TABLE = data.aws_dynamodb_table.story_metadata.name
-      OPENAI_API_KEY = var.openai_api_key
     }
   }
 }
@@ -123,9 +122,9 @@ resource "aws_iam_role_policy_attachment" "story_post_lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# Create custom policy for SQS and DynamoDB access
-resource "aws_iam_role_policy" "story_post_lambda_sqs_dynamodb" {
-  name = "story-post-lambda-sqs-dynamodb-policy"
+# Create custom policy for SNS and DynamoDB access
+resource "aws_iam_role_policy" "story_post_lambda_sns_dynamodb" {
+  name = "story-post-lambda-sns-dynamodb-policy"
   role = aws_iam_role.story_post_lambda_role.id
 
   policy = jsonencode({
@@ -134,12 +133,9 @@ resource "aws_iam_role_policy" "story_post_lambda_sqs_dynamodb" {
       {
         Effect = "Allow"
         Action = [
-          "sqs:SendMessage",
-          "sqs:SendMessageBatch",
-          "sqs:GetQueueAttributes",
-          "sqs:GetQueueUrl"
+          "sns:Publish"
         ]
-        Resource = data.aws_sqs_queue.sqs_queue.arn
+        Resource = data.terraform_remote_state.sns.outputs.sns_topic_arn
       },
       {
         Effect = "Allow"
@@ -199,8 +195,14 @@ data "aws_api_gateway_rest_api" "api" {
   name = "story-api"
 }
 
-data "aws_sqs_queue" "sqs_queue" {
-  name = "story-sqs-queue"
+# Get SNS topic ARN from external terraform state
+data "terraform_remote_state" "sns" {
+  backend = "s3"
+  config = {
+    bucket = "story-service-terraform-state"
+    key    = "sns/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 data "aws_dynamodb_table" "story_metadata" {

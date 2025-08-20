@@ -1,15 +1,12 @@
 // Define types for the request body
 export interface StoryRequest {
   payload: string;
-  openaiPrompt?: string;
-  model?: string;
 }
 
 // Define types for the response
 export interface StoryResponse {
   message: string;
   receivedPayload: string;
-  openaiResponse?: string | undefined;
   note?: string;
 }
 

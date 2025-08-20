@@ -43,9 +43,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
         
-    - name: Set OpenAI API Key
-      run: |
-        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+
         
     - name: Install Dependencies
       run: |
@@ -133,8 +131,7 @@ jobs:
           
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan_status.outputs.status == 'changes'
-      env:
-        TF_VAR_openai_api_key: ${{ env.OPENAI_API_KEY }}
+
       run: terraform apply -auto-approve
       
     - name: Comment Apply Result
