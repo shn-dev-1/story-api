@@ -34,6 +34,13 @@ data "archive_file" "story_post_lambda_zip" {
   output_path = "${path.module}/story_post_lambda_function.zip"
 }
 
+# Create a ZIP file of the story_get Lambda function code
+data "archive_file" "story_get_lambda_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/story-get/dist"
+  output_path = "${path.module}/story_get_lambda_function.zip"
+}
+
 # Create the story_post Lambda function
 resource "aws_lambda_function" "story_post_lambda" {
   filename         = data.archive_file.story_post_lambda_zip.output_path
@@ -51,6 +58,25 @@ resource "aws_lambda_function" "story_post_lambda" {
       SQS_QUEUE_URL  = data.aws_sqs_queue.sqs_queue.url
       DYNAMODB_TABLE = data.aws_dynamodb_table.story_metadata.name
       OPENAI_API_KEY = var.openai_api_key
+    }
+  }
+}
+
+# Create the story_get Lambda function
+resource "aws_lambda_function" "story_get_lambda" {
+  filename         = data.archive_file.story_get_lambda_zip.output_path
+  function_name    = "story-get-lambda"
+  role             = aws_iam_role.story_get_lambda_role.arn
+  handler          = "index.handler"
+  source_code_hash = data.archive_file.story_get_lambda_zip.output_base64sha256
+  runtime          = "nodejs18.x"
+  timeout          = 30
+  memory_size      = 128
+
+  environment {
+    variables = {
+      NODE_ENV       = "production"
+      DYNAMODB_TABLE = data.aws_dynamodb_table.story_metadata.name
     }
   }
 }
@@ -119,6 +145,37 @@ resource "aws_iam_role_policy" "story_post_lambda_sqs_dynamodb" {
   })
 }
 
+# Attach basic Lambda execution policy for story_get
+resource "aws_iam_role_policy_attachment" "story_get_lambda_basic" {
+  role       = aws_iam_role.story_get_lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Create custom policy for DynamoDB access (story_get only needs read access)
+resource "aws_iam_role_policy" "story_get_lambda_dynamodb" {
+  name = "story-get-lambda-dynamodb-policy"
+  role = aws_iam_role.story_get_lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:DescribeTable"
+        ]
+        Resource = [
+          data.aws_dynamodb_table.story_metadata.arn,
+          "${data.aws_dynamodb_table.story_metadata.arn}/index/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Get the root resource ID (this is always available)
 data "aws_api_gateway_rest_api" "api" {
   name = "story-api"
@@ -173,6 +230,34 @@ resource "aws_lambda_permission" "story_post_api_gateway" {
   source_arn    = "${data.aws_api_gateway_rest_api.api.execution_arn}/*/*/*"
 }
 
+# Create the GET method for story_get endpoint
+resource "aws_api_gateway_method" "story_get_method" {
+  rest_api_id   = data.aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.story_post.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+# Create the Lambda integration for story_get endpoint
+resource "aws_api_gateway_integration" "story_get_lambda" {
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.story_post.id
+  http_method = aws_api_gateway_method.story_get_method.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.story_get_lambda.invoke_arn
+}
+
+# Create the Lambda permission to allow API Gateway to invoke story_get Lambda
+resource "aws_lambda_permission" "story_get_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.story_get_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${data.aws_api_gateway_rest_api.api.execution_arn}/*/*/*"
+}
+
 # Create OPTIONS method for CORS on story_post endpoint
 resource "aws_api_gateway_method" "story_post_options" {
   rest_api_id   = data.aws_api_gateway_rest_api.api.id
@@ -193,8 +278,8 @@ resource "aws_api_gateway_integration" "story_post_options" {
   content_handling     = "CONVERT_TO_TEXT"
 }
 
-# Create OPTIONS method response for story_post endpoint
-resource "aws_api_gateway_method_response" "story_post_options" {
+# Create OPTIONS method response for story endpoint (supports both POST and GET)
+resource "aws_api_gateway_method_response" "story_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.story_post.id
   http_method = aws_api_gateway_method.story_post_options.http_method
@@ -207,25 +292,26 @@ resource "aws_api_gateway_method_response" "story_post_options" {
   }
 }
 
-# Create OPTIONS integration response for story_post endpoint
-resource "aws_api_gateway_integration_response" "story_post_options" {
+# Create OPTIONS integration response for story endpoint (supports both POST and GET)
+resource "aws_api_gateway_integration_response" "story_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.story_post.id
   http_method = aws_api_gateway_method.story_post_options.http_method
-  status_code = aws_api_gateway_method_response.story_post_options.status_code
+  status_code = aws_api_gateway_method_response.story_options.status_code
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,GET,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
 }
 
-# Deploy the API Gateway to make story_post endpoint changes live
-resource "aws_api_gateway_deployment" "story_post_deployment" {
+# Deploy the API Gateway to make story endpoint changes live (supports both POST and GET)
+resource "aws_api_gateway_deployment" "story_deployment" {
   depends_on = [
     aws_api_gateway_integration.story_post_lambda,
-    aws_api_gateway_integration_response.story_post_options
+    aws_api_gateway_integration.story_get_lambda,
+    aws_api_gateway_integration_response.story_options
   ]
 
   rest_api_id = data.aws_api_gateway_rest_api.api.id

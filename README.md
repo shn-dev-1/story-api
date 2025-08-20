@@ -31,9 +31,15 @@ story-service/
 │   ├── package.json            # Lambda function dependencies
 │   ├── tsconfig.json           # TypeScript configuration
 │   └── README.md               # Lambda function documentation
-├── main.tf                     # Terraform infrastructure configuration (story_post specific)
+├── story-get/                  # Story GET Lambda function
+│   ├── src/                    # TypeScript source code
+│   ├── dist/                   # Compiled JavaScript (generated)
+│   ├── package.json            # Lambda function dependencies
+│   ├── tsconfig.json           # TypeScript configuration
+│   └── README.md               # Lambda function documentation
+├── main.tf                     # Terraform infrastructure configuration for story Lambda functions
 ├── variables.tf                # Terraform input variables
-├── outputs.tf                  # Terraform outputs (story_post specific)
+├── outputs.tf                  # Terraform outputs for story Lambda functions
 ├── package.json                # Root repository configuration
 └── README.md                   # This file
 ```
@@ -60,6 +66,7 @@ Make sure you have these secrets configured in your repository:
    
    # Install Lambda function dependencies
    cd story-post && npm install && cd ..
+   cd story-get && npm install && cd ..
    ```
 
 3. **Initialize Terraform**:
@@ -77,12 +84,16 @@ Make sure you have these secrets configured in your repository:
    terraform apply
    ```
 
-## API Endpoint
+## API Endpoints
 
-After deployment, the `/story` endpoint will be available at:
+After deployment, the `/story` endpoints will be available at:
 ```
 https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/<stage>/story
 ```
+
+### POST Endpoint
+
+**POST** `/story`
 
 ### Request Format
 
@@ -111,6 +122,51 @@ https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/<stage>/story
   "payload": "Story about a robot",
   "openaiPrompt": "Write a short story about a robot learning to paint",
   "model": "gpt-4o"
+}
+```
+
+### GET Endpoint
+
+**GET** `/story?storyId={storyId}`
+
+#### Query Parameters
+- `storyId` (required): The unique identifier of the story to retrieve
+
+#### Examples
+
+**Basic request:**
+```
+GET /story?storyId=123
+```
+
+**Response (200):**
+```json
+{
+  "message": "Success",
+  "story": {
+    "storyId": "123",
+    "payload": "Story content...",
+    "openaiPrompt": "AI prompt used",
+    "openaiResponse": "AI generated response",
+    "timestamp": "2024-01-01T00:00:00.000Z",
+    "source": "story-service-lambda"
+  }
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "message": "Bad Request",
+  "error": "storyId query parameter is required"
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "message": "Not Found",
+  "error": "Story with ID '123' not found"
 }
 ```
 

@@ -155,4 +155,5 @@ jobs:
         rm -rf .terraform
         rm -f .terraform.lock.hcl
         rm -f story_post_lambda_function.zip
+        rm -f story_get_lambda_function.zip
         echo "Cleanup complete" 

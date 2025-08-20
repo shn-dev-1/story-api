@@ -23,4 +23,29 @@ output "api_gateway_story_post_url" {
 output "story_post_lambda_role_arn" {
   description = "ARN of the story_post Lambda execution role"
   value       = aws_iam_role.story_post_lambda_role.arn
+}
+
+output "story_get_lambda_function_name" {
+  description = "Name of the story_get Lambda function"
+  value       = aws_lambda_function.story_get_lambda.function_name
+}
+
+output "story_get_lambda_function_arn" {
+  description = "ARN of the story_get Lambda function"
+  value       = aws_lambda_function.story_get_lambda.arn
+}
+
+output "story_get_lambda_function_invoke_arn" {
+  description = "Invocation ARN of the story_get Lambda function"
+  value       = aws_lambda_function.story_get_lambda.invoke_arn
+}
+
+output "api_gateway_story_get_url" {
+  description = "URL of the /story endpoint for story_get Lambda (GET method)"
+  value       = "https://${data.aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com/prod/story"
+}
+
+output "story_get_lambda_role_arn" {
+  description = "ARN of the story_get Lambda execution role"
+  value       = aws_iam_role.story_get_lambda_role.arn
 } 

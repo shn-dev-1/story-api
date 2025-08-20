@@ -54,14 +54,21 @@ jobs:
         npm ci
       
     - name: Build TypeScript
-      run: npm run build:story-post
-      
-    - name: Package Lambda Function
       run: |
-        echo "Packaging Lambda function with dependencies..."
+        npm run build:story-post
+        npm run build:story-get
+      
+    - name: Package Lambda Functions
+      run: |
+        echo "Packaging story-post Lambda function with dependencies..."
         npm run package:story-post
-        echo "Lambda function packaged successfully"
+        echo "story-post Lambda function packaged successfully"
         ls -la story_post_lambda_function.zip
+        
+        echo "Packaging story-get Lambda function with dependencies..."
+        npm run package:story-get
+        echo "story-get Lambda function packaged successfully"
+        ls -la story_get_lambda_function.zip
         
     - name: Terraform Init
       run: terraform init

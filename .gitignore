@@ -4,6 +4,7 @@
 .terraform/
 .terraform.lock.hcl
 story_post_lambda_function.zip
+story_get_lambda_function.zip
 
 # Lambda packaging
 dist/node_modules/
@@ -11,6 +12,8 @@ dist/node_modules/
 # Build artifacts
 story-post/dist/
 story-post/build/
+story-get/dist/
+story-get/build/
 dist/
 build/
 

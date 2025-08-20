@@ -8,6 +8,10 @@
     "package:story-post": "cd story-post && npm run package:lambda",
     "clean:story-post": "cd story-post && npm run clean",
     "install:story-post": "cd story-post && npm ci",
+    "build:story-get": "cd story-get && npm run build",
+    "package:story-get": "cd story-get && npm run package:lambda",
+    "clean:story-get": "cd story-get && npm run clean",
+    "install:story-get": "cd story-get && npm ci",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -23,6 +27,7 @@
     "node": ">=18.0.0"
   },
   "workspaces": [
-    "story-post"
+    "story-post",
+    "story-get"
   ]
 } 
