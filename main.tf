@@ -213,25 +213,25 @@ data "aws_api_gateway_resource" "root" {
   path        = "/"
 }
 
-# Create the /story resource for story_post endpoint
-resource "aws_api_gateway_resource" "story_post" {
+# Create the /story resource for story endpoints (supports both POST and GET)
+resource "aws_api_gateway_resource" "story_resource" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
   parent_id   = data.aws_api_gateway_resource.root.id
   path_part   = "story"
 }
 
-# Create the POST method for story_post endpoint
+# Create the POST method for story endpoint
 resource "aws_api_gateway_method" "story_post_method" {
   rest_api_id   = data.aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.story_post.id
+  resource_id   = aws_api_gateway_resource.story_resource.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
-# Create the Lambda integration for story_post endpoint
+# Create the Lambda integration for story POST endpoint
 resource "aws_api_gateway_integration" "story_post_lambda" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story_post.id
+  resource_id = aws_api_gateway_resource.story_resource.id
   http_method = aws_api_gateway_method.story_post_method.http_method
 
   integration_http_method = "POST"
@@ -241,25 +241,66 @@ resource "aws_api_gateway_integration" "story_post_lambda" {
 
 # Create the Lambda permission to allow API Gateway to invoke story_post Lambda
 resource "aws_lambda_permission" "story_post_api_gateway" {
-  statement_id  = "AllowExecutionFromAPIGateway"
+  statement_id  = "AllowExecutionFromAPIGatewayStoryPost"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.story_post_lambda.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${data.aws_api_gateway_rest_api.api.execution_arn}/*/*/*"
 }
 
-# Create the GET method for story_get endpoint
-resource "aws_api_gateway_method" "story_get_method" {
-  rest_api_id   = data.aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.story_post.id
-  http_method   = "GET"
-  authorization = "NONE"
+# Create method response for story POST endpoint
+resource "aws_api_gateway_method_response" "story_post_method_response" {
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.story_resource.id
+  http_method = aws_api_gateway_method.story_post_method.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+  }
 }
 
-# Create the Lambda integration for story_get endpoint
+# Create integration response for story POST endpoint
+resource "aws_api_gateway_integration_response" "story_post_integration_response" {
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.story_resource.id
+  http_method = aws_api_gateway_method.story_post_method.http_method
+  status_code = aws_api_gateway_method_response.story_post_method_response.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+  }
+}
+
+# Create a request validator for story_get endpoint
+resource "aws_api_gateway_request_validator" "story_get_validator" {
+  name                        = "story-get-request-validator"
+  rest_api_id                 = data.aws_api_gateway_rest_api.api.id
+  validate_request_body       = false
+  validate_request_parameters = true
+}
+
+# Create the GET method for story endpoint
+resource "aws_api_gateway_method" "story_get_method" {
+  rest_api_id          = data.aws_api_gateway_rest_api.api.id
+  resource_id          = aws_api_gateway_resource.story_resource.id
+  http_method          = "GET"
+  authorization        = "NONE"
+  request_validator_id = aws_api_gateway_request_validator.story_get_validator.id
+
+  request_parameters = {
+    "method.request.querystring.id" = true # Make 'id' required
+  }
+}
+
+# Create the Lambda integration for story GET endpoint
 resource "aws_api_gateway_integration" "story_get_lambda" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story_post.id
+  resource_id = aws_api_gateway_resource.story_resource.id
   http_method = aws_api_gateway_method.story_get_method.http_method
 
   integration_http_method = "POST"
@@ -269,26 +310,54 @@ resource "aws_api_gateway_integration" "story_get_lambda" {
 
 # Create the Lambda permission to allow API Gateway to invoke story_get Lambda
 resource "aws_lambda_permission" "story_get_api_gateway" {
-  statement_id  = "AllowExecutionFromAPIGateway"
+  statement_id  = "AllowExecutionFromAPIGatewayStoryGet"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.story_get_lambda.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${data.aws_api_gateway_rest_api.api.execution_arn}/*/*/*"
 }
 
-# Create OPTIONS method for CORS on story_post endpoint
-resource "aws_api_gateway_method" "story_post_options" {
+# Create method response for story GET endpoint
+resource "aws_api_gateway_method_response" "story_get_method_response" {
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.story_resource.id
+  http_method = aws_api_gateway_method.story_get_method.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Headers" = true
+  }
+}
+
+# Create integration response for story GET endpoint
+resource "aws_api_gateway_integration_response" "story_get_integration_response" {
+  rest_api_id = data.aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.story_resource.id
+  http_method = aws_api_gateway_method.story_get_method.http_method
+  status_code = aws_api_gateway_method_response.story_get_method_response.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+  }
+}
+
+# Create OPTIONS method for CORS on story endpoint
+resource "aws_api_gateway_method" "story_options" {
   rest_api_id   = data.aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.story_post.id
+  resource_id   = aws_api_gateway_resource.story_resource.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
 
-# Create OPTIONS method integration for story_post endpoint
-resource "aws_api_gateway_integration" "story_post_options" {
+# Create OPTIONS method integration for story endpoint
+resource "aws_api_gateway_integration" "story_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story_post.id
-  http_method = aws_api_gateway_method.story_post_options.http_method
+  resource_id = aws_api_gateway_resource.story_resource.id
+  http_method = aws_api_gateway_method.story_options.http_method
 
   type                 = "MOCK"
   request_templates    = { "application/json" = "{\"statusCode\": 200}" }
@@ -299,8 +368,8 @@ resource "aws_api_gateway_integration" "story_post_options" {
 # Create OPTIONS method response for story endpoint (supports both POST and GET)
 resource "aws_api_gateway_method_response" "story_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story_post.id
-  http_method = aws_api_gateway_method.story_post_options.http_method
+  resource_id = aws_api_gateway_resource.story_resource.id
+  http_method = aws_api_gateway_method.story_options.http_method
   status_code = "200"
 
   response_parameters = {
@@ -313,8 +382,8 @@ resource "aws_api_gateway_method_response" "story_options" {
 # Create OPTIONS integration response for story endpoint (supports both POST and GET)
 resource "aws_api_gateway_integration_response" "story_options" {
   rest_api_id = data.aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.story_post.id
-  http_method = aws_api_gateway_method.story_post_options.http_method
+  resource_id = aws_api_gateway_resource.story_resource.id
+  http_method = aws_api_gateway_method.story_options.http_method
   status_code = aws_api_gateway_method_response.story_options.status_code
 
   response_parameters = {
@@ -329,10 +398,13 @@ resource "aws_api_gateway_deployment" "story_deployment" {
   depends_on = [
     aws_api_gateway_integration.story_post_lambda,
     aws_api_gateway_integration.story_get_lambda,
-    aws_api_gateway_integration_response.story_options
+    aws_api_gateway_integration_response.story_options,
+    aws_api_gateway_integration_response.story_get_integration_response,
+    aws_api_gateway_integration_response.story_post_integration_response
   ]
 
   rest_api_id = data.aws_api_gateway_rest_api.api.id
+  stage_name  = "prod"
 
   lifecycle {
     create_before_destroy = true
