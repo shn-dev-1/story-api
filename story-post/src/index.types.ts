@@ -12,10 +12,11 @@ export interface StoryResponse {
 }
 
 export enum StoryMetaDataStatus {
-    PENDING,
-    IN_PROGRESS,
-    POST_PROCESSING,
-    COMPLETED
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  POST_PROCESSING = 'POST_PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED'
 }
 
 export interface StoryMetaDataDDBItem {
