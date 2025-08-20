@@ -9,7 +9,7 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
     "package": "npm run build && cd dist && zip -r ../story_post_lambda_function.zip .",
-    "package:lambda": "npm run build && cp package.json dist/ && cd dist && npm install --production --no-optional --no-audit --no-fund --prefer-offline && zip -r ../story_post_lambda_function.zip ."
+    "package:lambda": "npm run build && cp package.json dist/ && cd dist && npm install --production --no-optional --no-audit --no-fund --prefer-offline && zip -r ../../story_post_lambda_function.zip ."
   },
   "keywords": [
     "aws",
