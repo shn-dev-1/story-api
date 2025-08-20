@@ -5,6 +5,7 @@ export interface StoryRequest {
 
 // Define types for the response
 export interface StoryResponse {
+  id: string
   message: string;
   receivedPrompt: string;
   note?: string;

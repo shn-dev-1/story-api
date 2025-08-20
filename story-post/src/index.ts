@@ -79,6 +79,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
         
         const response: StoryResponse = {
+            id,
             message: 'Success',
             receivedPrompt: prompt,
             note: 'SNS and DynamoDB operations completed successfully.'
