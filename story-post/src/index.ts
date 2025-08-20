@@ -22,10 +22,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             Message: JSON.stringify({
                 storyPayload: payload,
                 timestamp: new Date().toISOString(),
-                source: 'story-service-lambda',
-                TASK_TYPE: 'TEXT'
+                source: 'story-service-lambda'
             }),
-            TopicArn: process.env.SNS_TOPIC_ARN
+            TopicArn: process.env.SNS_TOPIC_ARN,
+            MessageAttributes: {
+                TASK_TYPE: {
+                    DataType: 'String',
+                    StringValue: 'TEXT'
+                }
+            }
         };
         
         try {
