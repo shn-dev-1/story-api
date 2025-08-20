@@ -49,7 +49,7 @@ jobs:
         
     - name: Install Dependencies
       run: |
-        cd story-post && npm ci
+        npm ci
       
     - name: Build TypeScript
       run: npm run build:story-post
