@@ -1,12 +1,12 @@
 // Define types for the request body
 export interface StoryRequest {
-  payload: string;
+  prompt: string;
 }
 
 // Define types for the response
 export interface StoryResponse {
   message: string;
-  receivedPayload: string;
+  receivedPrompt: string;
   note?: string;
 }
 

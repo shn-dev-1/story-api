@@ -2,7 +2,8 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, PutCommandInput } from "@aws-sdk/lib-dynamodb";
 import { SNSClient, PublishCommand, PublishCommandInput } from "@aws-sdk/client-sns";
-import { StoryRequest, StoryResponse } from './index.types';
+import { randomBytes } from 'crypto';
+import { StoryMetaDataStatus, StoryRequest, StoryResponse } from './index.types';
 
 // Initialize AWS SDK clients
 const dynamoClient = new DynamoDBClient({});
@@ -10,18 +11,53 @@ const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
 const sns = new SNSClient({});
 
 
-
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         // Parse the incoming request
         const body: StoryRequest = JSON.parse(event.body || '{}');
-        const payload: string = body.payload || '';
+        const prompt: string = body.prompt || '';
+
+        // Validate that prompt is not null or empty
+        if (!prompt || prompt.trim() === '') {
+            return {
+                statusCode: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({
+                    message: 'Bad Request',
+                    error: 'prompt field is required and cannot be empty'
+                })
+            };
+        }
+
+        // Store data in DynamoDB
+        const dateCreated = new Date().toISOString();
+        const dynamoParams: PutCommandInput = {
+            TableName: process.env.DYNAMODB_TABLE,
+            Item: {
+                id: randomBytes(8).toString('hex'),
+                createdBy: 'hard-coded', //TODO: Get from event requestContext
+                prompt: prompt,
+                dateCreated,
+                dateUpdated: dateCreated,
+                status: StoryMetaDataStatus.PENDING
+            }
+        };
+        
+        try {
+            await dynamodb.send(new PutCommand(dynamoParams));
+            console.log('Data stored in DynamoDB successfully');
+        } catch (dynamoError) {
+            console.error('Error storing data in DynamoDB:', dynamoError);
+        }
         
         // Publish message to SNS topic
         const snsParams: PublishCommandInput = {
             Message: JSON.stringify({
-                storyPayload: payload,
-                timestamp: new Date().toISOString(),
+                storyPrompt: prompt,
+                timestamp: dateCreated,
                 source: 'story-service-lambda'
             }),
             TopicArn: process.env.SNS_TOPIC_ARN,
@@ -40,28 +76,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             console.error('Error publishing message to SNS:', snsError);
         }
         
-        
-        // Store data in DynamoDB
-        const dynamoParams: PutCommandInput = {
-            TableName: process.env.DYNAMODB_TABLE,
-            Item: {
-                id: `story-${Date.now()}`,
-                payload: payload,
-                timestamp: new Date().toISOString(),
-                status: 'created'
-            }
-        };
-        
-        try {
-            await dynamodb.send(new PutCommand(dynamoParams));
-            console.log('Data stored in DynamoDB successfully');
-        } catch (dynamoError) {
-            console.error('Error storing data in DynamoDB:', dynamoError);
-        }
-        
         const response: StoryResponse = {
             message: 'Success',
-            receivedPayload: payload,
+            receivedPrompt: prompt,
             note: 'SNS and DynamoDB operations completed successfully.'
         };
         
