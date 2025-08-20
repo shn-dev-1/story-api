@@ -20,7 +20,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('Event received:', JSON.stringify(event, null, 2));
 
     // Get the story ID from query parameters
-    const storyId = event.queryStringParameters?.storyId;
+    const storyId = event.queryStringParameters?.id;
     
     if (!storyId) {
       return {
@@ -42,7 +42,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const getParams = {
       TableName: process.env.DYNAMODB_TABLE,
       Key: {
-        storyId: storyId
+        id: storyId
       }
     };
 

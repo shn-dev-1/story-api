@@ -127,16 +127,16 @@ https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/<stage>/story
 
 ### GET Endpoint
 
-**GET** `/story?storyId={storyId}`
+**GET** `/story?id={storyId}`
 
 #### Query Parameters
-- `storyId` (required): The unique identifier of the story to retrieve
+- `id` (required): The unique identifier of the story to retrieve
 
 #### Examples
 
 **Basic request:**
 ```
-GET /story?storyId=123
+GET /story?id=123
 ```
 
 **Response (200):**
@@ -144,7 +144,7 @@ GET /story?storyId=123
 {
   "message": "Success",
   "story": {
-    "storyId": "123",
+    "id": "123",
     "payload": "Story content...",
     "openaiPrompt": "AI prompt used",
     "openaiResponse": "AI generated response",
@@ -158,7 +158,7 @@ GET /story?storyId=123
 ```json
 {
   "message": "Bad Request",
-  "error": "storyId query parameter is required"
+  "error": "id query parameter is required"
 }
 ```
 
