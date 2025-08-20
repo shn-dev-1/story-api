@@ -5,8 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "package": "cd src && zip -r ../lambda_function.zip .",
-    "clean": "rm -f lambda_function.zip"
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "package": "npm run build && cd dist && zip -r ../story_post_lambda_function.zip .",
+    "package:lambda": "npm run build && cp package.json dist/ && cd dist && npm install --production && zip -r ../story_post_lambda_function.zip ."
   },
   "keywords": [
     "aws",
@@ -30,13 +33,5 @@
     "@types/aws-lambda": "^8.10.0",
     "typescript": "^5.0.0",
     "ts-node": "^10.9.0"
-  },
-  "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
-    "clean": "rm -rf dist",
-    "package": "npm run build && cd dist && zip -r ../lambda_function.zip .",
-    "package:lambda": "npm run build && cp package.json dist/ && cd dist && npm install --production && zip -r ../lambda_function.zip ."
   }
-
 } 
