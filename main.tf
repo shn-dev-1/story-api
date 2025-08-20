@@ -55,7 +55,7 @@ resource "aws_lambda_function" "story_post_lambda" {
   environment {
     variables = {
       NODE_ENV       = "production"
-      SNS_TOPIC_ARN  = data.terraform_remote_state.sns.outputs.sns_topic_arn
+      SNS_TOPIC_ARN  = data.terraform_remote_state.shared_infrastructure.outputs.sns_topic_arn
       DYNAMODB_TABLE = data.aws_dynamodb_table.story_metadata.name
     }
   }
@@ -135,7 +135,7 @@ resource "aws_iam_role_policy" "story_post_lambda_sns_dynamodb" {
         Action = [
           "sns:Publish"
         ]
-        Resource = data.terraform_remote_state.sns.outputs.sns_topic_arn
+        Resource = data.terraform_remote_state.shared_infrastructure.outputs.sns_topic_arn
       },
       {
         Effect = "Allow"
@@ -195,12 +195,12 @@ data "aws_api_gateway_rest_api" "api" {
   name = "story-api"
 }
 
-# Get SNS topic ARN from external terraform state
-data "terraform_remote_state" "sns" {
+# Get shared infrastructure outputs from external terraform state
+data "terraform_remote_state" "shared_infrastructure" {
   backend = "s3"
   config = {
     bucket = "story-service-terraform-state"
-    key    = "sns/terraform.tfstate"
+    key    = "terraform.tfstate"
     region = "us-east-1"
   }
 }
