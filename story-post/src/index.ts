@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, PutCommandInput } from "@aws-sdk/lib-dynamodb";
 import { SNSClient, PublishCommand, PublishCommandInput } from "@aws-sdk/client-sns";
 import { randomBytes } from 'crypto';
-import { StoryMetaDataStatus, StoryRequest, StoryResponse } from './index.types';
+import { StoryMetaDataStatus, CreateStoryRequest, CreateStoryResponse } from './index.types';
 
 // Initialize AWS SDK clients
 const dynamoClient = new DynamoDBClient({});
@@ -14,7 +14,7 @@ const sns = new SNSClient({});
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         // Parse the incoming request
-        const body: StoryRequest = JSON.parse(event.body || '{}');
+        const body: CreateStoryRequest = JSON.parse(event.body || '{}');
         const prompt: string = body.prompt || '';
 
         // Validate that prompt is not null or empty
@@ -78,7 +78,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             console.error('Error publishing message to SNS:', snsError);
         }
         
-        const response: StoryResponse = {
+        const response: CreateStoryResponse = {
             id,
             message: 'The request has been received and is being processed.',
             receivedPrompt: prompt
@@ -105,7 +105,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             body: JSON.stringify({
                 message: 'Internal server error',
                 error: error instanceof Error ? error.message : 'Unknown error'
-            } as StoryResponse)
+            } as CreateStoryResponse)
         };
     }
 }; 

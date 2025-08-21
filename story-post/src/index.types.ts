@@ -1,14 +1,14 @@
 // Define types for the request body
-export interface StoryRequest {
+export interface CreateStoryRequest {
   prompt: string;
 }
 
 // Define types for the response
-export interface StoryResponse {
-  id: string
-  message: string;
-  receivedPrompt: string;
-  note?: string;
+export interface CreateStoryResponse {
+  id?: string
+  message?: string;
+  receivedPrompt?: string;
+  error?: string;
 }
 
 export enum StoryMetaDataStatus {
