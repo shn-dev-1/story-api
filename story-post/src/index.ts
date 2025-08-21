@@ -80,9 +80,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         
         const response: StoryResponse = {
             id,
-            message: 'Success',
-            receivedPrompt: prompt,
-            note: 'SNS and DynamoDB operations completed successfully.'
+            message: 'The request has been received and is being processed.',
+            receivedPrompt: prompt
         };
         
         return {
@@ -106,7 +105,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             body: JSON.stringify({
                 message: 'Internal server error',
                 error: error instanceof Error ? error.message : 'Unknown error'
-            })
+            } as StoryResponse)
         };
     }
 }; 
